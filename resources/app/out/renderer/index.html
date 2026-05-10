@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NSwitch Presence</title>
+  <style>
+    :root {
+      --bg: #0a0a0d;
+      --surface: #101015;
+      --surface-2: #16161e;
+      --elevated: #1d1d27;
+      --border: rgba(255,255,255,0.06);
+      --border-strong: rgba(255,255,255,0.12);
+      --text: #f5f5f7;
+      --text-2: #a6a6ad;
+      --text-3: #6b6b73;
+      --red: #e60012;
+      --red-dark: #b8000f;
+      --red-glow: rgba(230,0,18,0.35);
+      --neon-blue: #00c3e3;
+      --neon-pink: #ff3f70;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --radius-lg: 22px;
+      --shadow-card: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 40px -12px rgba(0,0,0,0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 4px; }
+
+    html, body, #app { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      user-select: none;
+    }
+    input, button, textarea { font: inherit; color: inherit; }
+
+    /* ---------- Titlebar ---------- */
+    .titlebar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      -webkit-app-region: drag;
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .titlebar::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: -1px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--red) 50%, transparent);
+      opacity: 0.5;
+    }
+    .titlebar-brand {
+      display: flex; align-items: center; gap: 9px;
+      padding: 0 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand-mark {
+      width: 22px; height: 22px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      display: grid; place-items: center;
+      box-shadow: 0 6px 18px -4px var(--red-glow);
+    }
+    .brand-mark svg { width: 13px; height: 13px; }
+    .titlebar-spacer { flex: 1; }
+    .window-controls {
+      -webkit-app-region: no-drag;
+      display: flex; height: 100%;
+    }
+    .win-btn {
+      width: 46px; height: 100%;
+      display: grid; place-items: center;
+      background: transparent; border: none;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: background .12s, color .12s;
+    }
+    .win-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .win-btn.close:hover { background: var(--red); color: white; }
+    .win-btn svg { width: 12px; height: 12px; }
+
+    /* ---------- App Shell ---------- */
+    .shell {
+      display: flex;
+      height: calc(100% - 38px);
+    }
+    .sidebar {
+      width: 220px;
+      flex: 0 0 auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 14px 10px;
+    }
+    .nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .nav-section {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+      padding: 8px 12px 6px;
+      font-weight: 600;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-2);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13.5px;
+      transition: background .12s, color .12s;
+      background: transparent; border: none; width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .nav-item.active {
+      background: linear-gradient(180deg, rgba(230,0,18,0.14), rgba(230,0,18,0.06));
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(230,0,18,0.25);
+    }
+    .nav-item.active .nav-icon { color: var(--red); }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .user-card {
+      margin-top: auto;
+      padding: 10px 8px 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--elevated);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border-strong);
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-fallback {
+      width: 100%; height: 100%;
+      display: grid; place-items: center;
+      font-weight: 700; font-size: 12px;
+      color: var(--text-2);
+    }
+    .presence-dot {
+      position: absolute;
+      right: -2px; bottom: -2px;
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      background: var(--text-3);
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+    .presence-dot.connected {
+      background: var(--success);
+      box-shadow: 0 0 0 2px var(--surface), 0 0 8px rgba(34,197,94,0.6);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 2px var(--surface), 0 0 8px rgba(34,197,94,0.6); }
+      50% { box-shadow: 0 0 0 2px var(--surface), 0 0 14px rgba(34,197,94,0.9); }
+    }
+    .user-meta { min-width: 0; flex: 1; }
+    .user-name {
+      font-weight: 600; font-size: 13px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-status {
+      font-size: 11px; color: var(--text-3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ---------- Main ---------- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px 36px;
+      background:
+        radial-gradient(ellipse 80% 40% at 80% -10%, rgba(230,0,18,0.08), transparent 60%),
+        var(--bg);
+    }
+    .page-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .page-subtitle {
+      color: var(--text-3); font-size: 13px; margin-top: 3px;
+    }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+    .pill .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--text-3);
+    }
+    .pill.connected { color: var(--success); border-color: rgba(34,197,94,0.25); background: rgba(34,197,94,0.08); }
+    .pill.connected .dot { background: var(--success); box-shadow: 0 0 6px rgba(34,197,94,0.7); }
+    .pill.offline { color: var(--text-2); }
+
+    /* ---------- Hero card ---------- */
+    .hero {
+      position: relative;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 22px;
+      min-height: 220px;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      filter: blur(40px) saturate(1.3) brightness(0.55);
+      transform: scale(1.15);
+      opacity: 0.55;
+      transition: opacity .35s ease;
+    }
+    .hero-content {
+      position: relative;
+      display: flex; align-items: center;
+      gap: 24px;
+      padding: 24px;
+    }
+    .cover {
+      width: 168px; height: 168px;
+      border-radius: 16px;
+      flex-shrink: 0;
+      background: var(--elevated);
+      object-fit: cover;
+      box-shadow: 0 18px 50px -10px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+      transition: transform .35s ease;
+    }
+    .cover.empty {
+      display: grid; place-items: center;
+      color: var(--text-3);
+    }
+    .hero-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .hero-eyebrow {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .hero-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      word-wrap: break-word;
+    }
+    .platform-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      width: fit-content;
+    }
+    .platform-chip.switch1 {
+      background: rgba(0,195,227,0.12);
+      color: var(--neon-blue);
+      box-shadow: inset 0 0 0 1px rgba(0,195,227,0.3);
+    }
+    .platform-chip.switch2 {
+      background: rgba(255,63,112,0.12);
+      color: var(--neon-pink);
+      box-shadow: inset 0 0 0 1px rgba(255,63,112,0.3);
+    }
+    .stat-row {
+      display: flex; gap: 26px; flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .stat .label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .stat .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------- Empty hero ---------- */
+    .hero.empty .cover {
+      background: linear-gradient(135deg, var(--elevated), var(--surface));
+    }
+    .hero.empty .hero-bg { opacity: 0.15; background: radial-gradient(circle at 30% 30%, var(--red-glow), transparent 50%); }
+
+    /* ---------- Two-col ---------- */
+    .grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+    @media (max-width: 880px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+    }
+    .card-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      color: var(--text-3);
+      margin-bottom: 12px;
+    }
+
+    /* Discord preview */
+    .discord-preview {
+      background: #1e1f22;
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.04);
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .discord-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 700; color: white;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .discord-avatar::after {
+      content: '';
+      position: absolute; right: -2px; bottom: -2px;
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--success);
+      border: 3px solid #1e1f22;
+    }
+    .discord-meta { min-width: 0; flex: 1; }
+    .discord-name { color: white; font-weight: 600; font-size: 13.5px; }
+    .discord-line { color: #b9bbbe; font-size: 12px; margin-top: 4px; }
+    .discord-line .game { color: white; font-weight: 500; }
+    .discord-time { color: #949ba4; font-size: 11.5px; margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px;
+    }
+    .toggle-info h4 { font-size: 13.5px; font-weight: 600; }
+    .toggle-info p { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .toggle {
+      position: relative;
+      width: 44px; height: 24px;
+      border-radius: 999px;
+      background: var(--elevated);
+      border: 1px solid var(--border-strong);
+      cursor: pointer;
+      transition: background .18s;
+      flex-shrink: 0;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute; top: 2px; left: 2px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: white;
+      transition: transform .18s, background .18s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .toggle.on { background: var(--red); border-color: var(--red-dark); }
+    .toggle.on::after { transform: translateX(20px); }
+
+    /* ---------- History ---------- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .stat-card .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-card .stat-lab {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-3);
+      margin-top: 4px;
+      font-weight: 600;
+    }
+    .session-list {
+      display: flex; flex-direction: column;
+      gap: 6px;
+    }
+    .session-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .session-cover {
+      width: 44px; height: 44px;
+      border-radius: 8px; flex-shrink: 0;
+      object-fit: cover;
+      background: var(--elevated);
+    }
+    .session-meta { flex: 1; min-width: 0; }
+    .session-title {
+      font-weight: 600; font-size: 13.5px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .session-sub { font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+    .session-dur {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600; font-size: 13px;
+      color: var(--text-2);
+    }
+    .top-list { display: flex; flex-direction: column; gap: 8px; }
+    .top-row { display: flex; align-items: center; gap: 10px; }
+    .top-rank {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--elevated);
+      color: var(--text-2);
+      display: grid; place-items: center;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .top-rank.gold { background: linear-gradient(135deg, #f5c542, #b8860b); color: #1a1a1a; }
+    .top-name {
+      flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-size: 13px; font-weight: 500;
+    }
+    .top-time {
+      font-size: 12px; color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .top-bar {
+      flex: 0 0 80px;
+      height: 6px;
+      background: var(--elevated);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .top-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), var(--neon-pink));
+      border-radius: 999px;
+    }
+    .empty-state {
+      padding: 32px 24px;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 13px;
+    }
+    .chip-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px 6px 12px;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .chip button {
+      background: transparent; border: none;
+      width: 18px; height: 18px;
+      display: grid; place-items: center;
+      cursor: pointer;
+      color: var(--text-3);
+      border-radius: 50%;
+    }
+    .chip button:hover { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: grid; place-items: center;
+      padding: 32px;
+      animation: fadeIn .18s ease;
+      user-select: text;
+    }
+    .modal-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 30px 80px -20px rgba(0,0,0,0.7);
+    }
+    .modal-card::-webkit-scrollbar { width: 8px; }
+    .modal-card::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 999px; }
+    .modal-close {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--elevated);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      cursor: pointer;
+      color: var(--text-2);
+      z-index: 2;
+    }
+    .modal-close:hover { background: var(--red); color: white; border-color: transparent; }
+    .modal-header { display: flex; gap: 16px; align-items: flex-start; }
+    .modal-cover {
+      width: 110px; height: 110px;
+      border-radius: 14px;
+      background: var(--elevated);
+      object-fit: cover;
+      flex-shrink: 0;
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+    }
+    .modal-info { flex: 1; min-width: 0; padding-top: 4px; }
+
+    /* Onboarding stepper */
+    .stepper {
+      display: flex; gap: 6px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .step-dot {
+      width: 26px; height: 4px;
+      border-radius: 999px;
+      background: var(--elevated);
+      transition: background .2s;
+    }
+    .step-dot.active { background: var(--red); }
+    .step-dot.done { background: rgba(230,0,18,0.5); }
+    .help-step {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px;
+      background: rgba(0,195,227,0.06);
+      border: 1px solid rgba(0,195,227,0.18);
+      border-radius: 10px;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+    .help-step .num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--neon-blue);
+      color: #001a1f;
+      font-weight: 700; font-size: 12px;
+      display: grid; place-items: center;
+      margin-top: 1px;
+    }
+
+    /* ---------- Settings ---------- */
+    .settings-stack { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label {
+      font-size: 12.5px; font-weight: 600; color: var(--text);
+    }
+    .field .hint {
+      font-size: 11.5px; color: var(--text-3);
+    }
+    .input {
+      background: var(--bg);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 13px;
+      transition: border-color .12s, box-shadow .12s;
+      width: 100%;
+      user-select: text;
+    }
+    .input:focus {
+      outline: none;
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(230,0,18,0.18);
+    }
+    .row { display: flex; gap: 8px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background .12s, transform .06s, border-color .12s;
+      background: var(--elevated);
+      color: var(--text);
+      border-color: var(--border-strong);
+    }
+    .btn:hover { background: #25252f; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: linear-gradient(180deg, var(--red), var(--red-dark));
+      border-color: transparent;
+      box-shadow: 0 8px 22px -8px var(--red-glow);
+      color: white;
+    }
+    .btn.primary:hover { filter: brightness(1.07); }
+    .btn.danger {
+      color: var(--danger); border-color: rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.06);
+    }
+    .btn.danger:hover { background: rgba(239,68,68,0.12); }
+    .btn.ghost { background: transparent; }
+
+    /* ---------- Setup ---------- */
+    .setup-screen {
+      height: 100%;
+      display: grid; place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(ellipse 60% 60% at 50% 30%, rgba(230,0,18,0.12), transparent 70%),
+        var(--bg);
+    }
+    .setup-card {
+      width: 100%; max-width: 460px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+    }
+    .setup-mark {
+      width: 56px; height: 56px;
+      margin: 0 auto 18px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
+      display: grid; place-items: center;
+      box-shadow: 0 18px 40px -10px var(--red-glow);
+    }
+    .setup-mark svg { width: 28px; height: 28px; color: white; }
+    .setup-title { text-align: center; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .setup-sub { text-align: center; color: var(--text-3); font-size: 13px; margin-top: 4px; margin-bottom: 24px; }
+    .alert {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      margin-bottom: 4px;
+    }
+    .alert.error {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: #fca5a5;
+    }
+
+    /* ---------- Helpers ---------- */
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+    .row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .text-muted { color: var(--text-3); }
+    .text-sm { font-size: 12px; }
+    .hidden { display: none !important; }
+
+    .fade-enter { animation: fadeIn .22s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* Scrollbar */
+    .main::-webkit-scrollbar { width: 10px; }
+    .main::-webkit-scrollbar-track { background: transparent; }
+    .main::-webkit-scrollbar-thumb { background: var(--elevated); border-radius: 999px; border: 2px solid var(--bg); }
+    .main::-webkit-scrollbar-thumb:hover { background: #2a2a36; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // ---------- State ----------
+    const state = {
+      page: 'now',
+      apiUrl: '',
+      nsaId: '',
+      friend: null,
+      game: null,
+      lastUpdated: null,
+      discord: { connected: false, enabled: true, currentGame: null, clientId: '' },
+      autoStart: false,
+      history: [],
+      totals: [],
+      privacy: { privateMode: false, hiddenGames: [], notifyGameChange: true },
+      setupStep: 1,
+      historySearch: '',
+      detailGame: null,
+      sessionTickerId: null,
+      _unsubscribe: null,
+    };
+
+    // ---------- Utilities ----------
+    const h = (tag, attrs = {}, ...children) => {
+      const el = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs || {})) {
+        if (k === 'class') el.className = v;
+        else if (k === 'html') el.innerHTML = v;
+        else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+        else if (v !== false && v != null) el.setAttribute(k, v);
+      }
+      for (const c of children.flat()) {
+        if (c == null || c === false) continue;
+        el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+      }
+      return el;
+    };
+
+    const icon = (path, size = 18) => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', size); svg.setAttribute('height', size);
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.8');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.innerHTML = path;
+      return svg;
+    };
+
+    const ICONS = {
+      home: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      cog: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+      gamepad: '<path d="M6 11h4M8 9v4"/><circle cx="15.5" cy="11" r="0.7" fill="currentColor"/><circle cx="17.5" cy="13" r="0.7" fill="currentColor"/><rect x="2" y="6" width="20" height="12" rx="4"/>',
+      switch: '<rect x="3" y="3" width="8" height="18" rx="2"/><rect x="13" y="3" width="8" height="18" rx="2"/><circle cx="7" cy="8" r="0.8" fill="currentColor"/><circle cx="17" cy="16" r="0.8" fill="currentColor"/>',
+      mini: '<line x1="5" y1="12" x2="19" y2="12"/>',
+      close: '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>',
+      external: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
+      refresh: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+      chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+      eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+      eyeOff: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>',
+      bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+      trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
+      plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+      arrowRight: '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+      arrowLeft: '<line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>',
+      check: '<polyline points="20 6 9 17 4 12"/>',
+      info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+      lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+      clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    };
+
+    const formatDuration = (ms) => {
+      if (!ms || ms < 0) return '0s';
+      const s = Math.floor(ms / 1000);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) return `${h}h ${m}m`;
+      if (m > 0) return `${m}m ${sec}s`;
+      return `${sec}s`;
+    };
+
+    const formatPlayTime = (mins) => {
+      if (!mins) return '—';
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h === 0) return `${m} min`;
+      return `${h}h ${m}m`;
+    };
+
+    const relativeTime = (date) => {
+      if (!date) return '—';
+      const diff = Date.now() - new Date(date).getTime();
+      const s = Math.floor(diff / 1000);
+      if (s < 5) return 'agora mesmo';
+      if (s < 60) return `há ${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `há ${m}m`;
+      const h = Math.floor(m / 60);
+      return `há ${h}h`;
+    };
+
+    const platformLabel = (p) => p === 2 ? 'Nintendo Switch 2' : 'Nintendo Switch';
+    const hltbUrl = (name) => `https://howlongtobeat.com/?q=${encodeURIComponent(name || '')}`;
+
+    const formatDate = (ms) => {
+      if (!ms) return '—';
+      const d = new Date(ms);
+      const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    };
+
+    const calculateStreak = (sessions) => {
+      if (!sessions || sessions.length === 0) return 0;
+      const dayKey = (ts) => { const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); };
+      const days = new Set(sessions.map((s) => dayKey(s.startedAt)));
+      const today = new Date(); today.setHours(0,0,0,0);
+      let streak = 0;
+      let cursor = today.getTime();
+      // Allow streak to start today OR yesterday
+      if (!days.has(cursor)) cursor -= 86400000;
+      while (days.has(cursor)) {
+        streak++;
+        cursor -= 86400000;
+      }
+      return streak;
+    };
+
+    // ---------- Data layer ----------
+    async function loadInitialData() {
+      const [apiUrl, nsaId, discordStatus, autoStart, privacy, history, totals] = await Promise.all([
+        window.app.getPresenceUrl(),
+        window.app.getNsaid(),
+        window.discord.getStatus(),
+        window.electron.getAutoStart(),
+        window.privacy.get(),
+        window.gameHistory.list(),
+        window.totals.list(),
+      ]);
+      state.apiUrl = apiUrl || 'https://nxapi-presence.fancy.org.uk';
+      state.nsaId = nsaId || '';
+      state.discord = discordStatus;
+      state.autoStart = autoStart;
+      state.privacy = privacy || state.privacy;
+      state.history = history || [];
+      state.totals = totals || [];
+
+      if (state.nsaId) {
+        const current = await window.presence.getCurrent();
+        if (current) {
+          state.game = current.game || null;
+          state.lastUpdated = current.lastUpdated;
+        }
+        // Pull friend info (name + avatar) directly from API
+        await refreshFriendInfo();
+      }
+    }
+
+    async function refreshFriendInfo() {
+      if (!state.apiUrl || !state.nsaId) return;
+      try {
+        const res = await fetch(`${state.apiUrl}/api/presence/${state.nsaId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.friend) {
+          state.friend = {
+            name: data.friend.name,
+            imageUri: data.friend.imageUri || data.friend.image2Uri || '',
+            online: data.friend.presence?.state === 'ONLINE',
+          };
+          // Also sync game data from same response — covers cases the poller hasn't ticked yet
+          const p = data.friend.presence;
+          if (p?.game?.name) {
+            state.game = {
+              name: p.game.name,
+              imageUri: p.game.imageUri,
+              sessionStartedAt: new Date((p.updatedAt || 0) * 1000),
+              totalPlayedMinutes: p.game.totalPlayTime || 0,
+              platform: p.platform,
+              firstPlayedAt: p.game.firstPlayedAt ? p.game.firstPlayedAt * 1000 : null,
+              shopUri: p.game.shopUri || null,
+            };
+            state.lastUpdated = new Date();
+          } else {
+            // Only clear if we don't already have a game from the poller
+            if (!state.game?.name) state.game = null;
+          }
+        }
+      } catch {}
+    }
+
+    function subscribeToPresence() {
+      if (state._unsubscribe) state._unsubscribe();
+      state._unsubscribe = window.presence.subscribe((_event, game) => {
+        state.game = game || null;
+        state.lastUpdated = new Date();
+        if (state.page === 'now') renderPage();
+        renderSidebar();
+        // Refresh friend info + totals on game change
+        Promise.all([refreshFriendInfo(), window.totals.list()]).then(([_, totals]) => {
+          state.totals = totals || state.totals;
+          if (state.page === 'now') renderPage();
+          if (state.page === 'history') renderPage();
+          renderSidebar();
+        });
+      });
+    }
+
+    // ---------- Render: Setup (multi-step) ----------
+    function renderSetup() {
+      const root = document.getElementById('app');
+      root.innerHTML = '';
+      if (!state.setupStep || state.setupStep < 1 || state.setupStep > 3) state.setupStep = 1;
+      root.appendChild(renderTitlebar());
+
+      const screen = h('div', { class: 'setup-screen' });
+      const card = h('div', { class: 'setup-card fade-enter' });
+      screen.appendChild(card);
+      root.appendChild(screen);
+
+      const buildStepper = () => h('div', { class: 'stepper' },
+        ...[1, 2, 3].map((i) =>
+          h('div', { class: `step-dot ${state.setupStep === i ? 'active' : state.setupStep > i ? 'done' : ''}` })
+        )
+      );
+
+      const renderStep = () => {
+        card.innerHTML = '';
+        card.appendChild(buildStepper());
+        if (state.setupStep === 1) renderStep1();
+        else if (state.setupStep === 2) renderStep2();
+        else renderStep3();
+      };
+
+      const renderStep1 = () => {
+        card.appendChild(h('div', { class: 'setup-mark' }, icon(ICONS.switch, 28)));
+        card.appendChild(h('h1', { class: 'setup-title' }, 'Bem-vindo'));
+        card.appendChild(h('p', { class: 'setup-sub' }, 'Vamos conectar sua presença do Nintendo Switch ao Discord em 3 passos.'));
+        card.appendChild(h('div', { class: 'stack' },
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '1'),
+            h('div', {}, h('strong', {}, 'Vincular conta Nintendo'), h('br'), 'Você vai logar com sua conta Nintendo no servidor nxapi (passo seguro, é o mesmo serviço que o app oficial usa).'),
+          ),
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '2'),
+            h('div', {}, h('strong', {}, 'Pegar seu NSA ID'), h('br'), 'O nxapi-presence vai te dar um link único contendo seu identificador. Você só precisa colar aqui.'),
+          ),
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '3'),
+            h('div', {}, h('strong', {}, 'Pronto'), h('br'), 'O app começa a monitorar e atualiza o Discord automaticamente quando você jogar.'),
+          ),
+          h('button', {
+            class: 'btn primary', style: 'margin-top: 8px;',
+            onClick: () => { state.setupStep = 2; renderStep(); },
+          }, 'Começar', icon(ICONS.arrowRight, 14)),
+        ));
+      };
+
+      const renderStep2 = () => {
+        card.appendChild(h('div', { class: 'setup-mark' }, icon(ICONS.external, 28)));
+        card.appendChild(h('h1', { class: 'setup-title' }, 'Pegue seu NSA ID'));
+        card.appendChild(h('p', { class: 'setup-sub' }, 'Login na Nintendo + 2 verificações no Switch.'));
+        card.appendChild(h('div', { class: 'stack' },
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '1'),
+            h('div', {}, 'Clique em ', h('strong', {}, '"Abrir nxapi-presence"'), ' abaixo e faça login com sua conta Nintendo. O serviço adiciona automaticamente seu perfil à lista de monitoramento.'),
+          ),
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '2'),
+            h('div', {},
+              h('strong', {}, 'No Switch'), ': abra ', h('em', {}, 'Perfil → Configurações de Compartilhamento de Presença Online'),
+              ' e selecione ', h('strong', { style: 'color: var(--neon-blue);' }, '"Amigos"'),
+              '. Sem isso, sua presença fica sempre vazia.',
+            ),
+          ),
+          h('div', { class: 'help-step' },
+            h('div', { class: 'num' }, '3'),
+            h('div', {}, 'No site nxapi-presence, copie o link da sua página de presença. Formato: ',
+              h('code', { style: 'font-family: monospace; font-size: 11px; color: var(--neon-blue); user-select: text;' }, '.../api/presence/abc123def456...'),
+            ),
+          ),
+          h('div', {
+            style: 'padding: 10px 12px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 10px; font-size: 12px; color: #fcd34d; line-height: 1.5;',
+          },
+            h('strong', {}, 'Dica: '),
+            'na primeira vez, pode levar 1-2 minutos pro serviço ver seu Switch online. Se a validação falhar, espere e tente de novo.',
+          ),
+          h('button', {
+            class: 'btn primary',
+            onClick: () => window.electron.openExternal('https://nxapi-presence.fancy.org.uk'),
+          }, icon(ICONS.external, 14), 'Abrir nxapi-presence'),
+          h('div', { class: 'row' },
+            h('button', {
+              class: 'btn',
+              style: 'flex: 1;',
+              onClick: () => { state.setupStep = 1; renderStep(); },
+            }, icon(ICONS.arrowLeft, 14), 'Voltar'),
+            h('button', {
+              class: 'btn primary',
+              style: 'flex: 2;',
+              onClick: () => { state.setupStep = 3; renderStep(); },
+            }, 'Já tenho o link', icon(ICONS.arrowRight, 14)),
+          ),
+        ));
+      };
+
+      const renderStep3 = () => {
+        const errorBox = h('div', { class: 'alert error hidden' });
+        const apiInput = h('input', {
+          class: 'input', type: 'url',
+          placeholder: 'https://nxapi-presence.fancy.org.uk',
+          value: state.apiUrl || 'https://nxapi-presence.fancy.org.uk',
+        });
+        const linkInput = h('input', {
+          class: 'input', type: 'url',
+          placeholder: 'https://nxapi-presence.fancy.org.uk/api/presence/...',
+        });
+        linkInput.style.userSelect = 'text';
+        apiInput.style.userSelect = 'text';
+
+        const showError = (msg) => {
+          errorBox.textContent = msg;
+          errorBox.classList.toggle('hidden', !msg);
+        };
+
+        const submitBtn = h('button', { class: 'btn primary', style: 'flex: 2;' }, 'Conectar', icon(ICONS.check, 14));
+        const onSubmit = async () => {
+          showError('');
+          submitBtn.textContent = 'Validando...';
+          submitBtn.setAttribute('disabled', 'true');
+          try {
+            const apiUrl = apiInput.value.trim().replace(/\/$/, '');
+            const link = linkInput.value.trim();
+            if (!apiUrl) return showError('Informe a URL da API.');
+            const match = link.match(/\/api\/presence\/([a-f0-9]{16})/i);
+            if (!match) return showError('Cole o link completo. Deve conter /api/presence/ seguido do seu NSA ID.');
+            const nsaId = match[1];
+            const res = await fetch(`${apiUrl}/api/presence/${nsaId}`);
+            if (!res.ok) return showError(`API retornou ${res.status}. Confira o link e tente de novo.`);
+            const data = await res.json();
+            if (!data?.friend) return showError('Resposta inesperada da API. O link parece inválido.');
+            await window.app.setPresenceUrl(apiUrl);
+            await window.app.setNsaid(nsaId);
+            await window.app.start();
+            state.apiUrl = apiUrl;
+            state.nsaId = nsaId;
+            // Show diagnostic step before transitioning
+            renderDiagnostic({ apiUrl, nsaId, friend: data.friend });
+          } catch (e) {
+            showError('Falha ao conectar. Veja sua conexão de internet.');
+            submitBtn.removeAttribute('disabled');
+            submitBtn.innerHTML = '';
+            submitBtn.appendChild(document.createTextNode('Conectar '));
+            submitBtn.appendChild(icon(ICONS.check, 14));
+          }
+        };
+        submitBtn.addEventListener('click', onSubmit);
+        linkInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') onSubmit(); });
+
+        const renderDiagnostic = ({ apiUrl, nsaId, friend }) => {
+          card.innerHTML = '';
+          card.appendChild(buildStepper());
+          const presence = friend.presence;
+          const state2 = presence?.state || 'UNKNOWN';
+          const game = presence?.game?.name;
+
+          let diag;
+          if (state2 === 'ONLINE' && game) {
+            diag = { ic: '✅', tone: 'success', title: 'Tudo certo', body: `Detectamos seu Switch jogando ${game}. Você está conectado.` };
+          } else if (state2 === 'ONLINE') {
+            diag = { ic: '✅', tone: 'success', title: 'Conta vinculada', body: 'Switch online no menu inicial. Quando abrir um jogo, vai aparecer aqui.' };
+          } else if (state2 === 'INVISIBLE') {
+            diag = { ic: '⚠️', tone: 'warn', title: 'Presença oculta', body: 'Sua presença online está como "Ninguém" no perfil do Switch. Vá em Configurações de Compartilhamento de Presença Online e mude pra "Amigos".' };
+          } else if (state2 === 'OFFLINE') {
+            diag = { ic: '🟡', tone: 'warn', title: 'Switch offline', body: 'Conta vinculada, mas o Switch está desligado ou em modo descanso. Ligue o console pra confirmar a conexão.' };
+          } else if (!friend.isFriend) {
+            diag = { ic: '⚠️', tone: 'warn', title: 'Aguardando sincronia', body: 'O serviço ainda não te marcou como amigo. Aguarde 1-2 minutos e tente verificar de novo.' };
+          } else {
+            diag = { ic: 'ℹ️', tone: 'neutral', title: 'Conta vinculada', body: `Estado retornado: ${state2}. Vamos abrir o app e tentar capturar a presença.` };
+          }
+
+          const toneStyle = {
+            success: 'background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.25); color: #86efac;',
+            warn: 'background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); color: #fcd34d;',
+            neutral: 'background: rgba(0,195,227,0.06); border-color: rgba(0,195,227,0.18); color: #67e8f9;',
+          }[diag.tone];
+
+          card.appendChild(h('div', { class: 'setup-mark' }, icon(ICONS.check, 28)));
+          card.appendChild(h('h1', { class: 'setup-title' }, 'Pronto!'));
+          card.appendChild(h('p', { class: 'setup-sub' }, `Conectado como ${friend.name}.`));
+          card.appendChild(h('div', { class: 'stack' },
+            h('div', {
+              style: `padding: 14px; border: 1px solid; border-radius: 12px; font-size: 13px; line-height: 1.5; ${toneStyle}`,
+            },
+              h('div', { style: 'font-weight: 700; margin-bottom: 4px;' }, `${diag.ic} ${diag.title}`),
+              h('div', { style: 'opacity: 0.92;' }, diag.body),
+            ),
+            h('button', {
+              class: 'btn',
+              onClick: async () => {
+                submitBtn.textContent = 'Validando novamente...';
+                const r = await window.app.diagnose({ apiUrl, nsaId });
+                if (r?.ok) {
+                  const f = { name: friend.name, isFriend: r.isFriend, presence: { state: r.state, game: r.game ? { name: r.game } : undefined } };
+                  renderDiagnostic({ apiUrl, nsaId, friend: f });
+                }
+              },
+            }, icon(ICONS.refresh, 14), 'Verificar de novo'),
+            h('button', {
+              class: 'btn primary',
+              onClick: async () => {
+                await loadInitialData();
+                subscribeToPresence();
+                startSessionTicker();
+                state.page = 'now';
+                renderApp();
+              },
+            }, 'Continuar para o app', icon(ICONS.arrowRight, 14)),
+          ));
+        };
+
+        card.appendChild(h('div', { class: 'setup-mark' }, icon(ICONS.check, 28)));
+        card.appendChild(h('h1', { class: 'setup-title' }, 'Conectar'));
+        card.appendChild(h('p', { class: 'setup-sub' }, 'Cole o link e eu valido pra você.'));
+        card.appendChild(h('div', { class: 'stack' },
+          h('div', { class: 'field' },
+            h('label', {}, 'Link de Presença'),
+            linkInput,
+            h('span', { class: 'hint' }, 'Algo como nxapi-presence.fancy.org.uk/api/presence/ABC123...'),
+          ),
+          h('div', { class: 'field' },
+            h('label', {}, 'URL da API'),
+            apiInput,
+            h('span', { class: 'hint' }, 'Mantenha o padrão se não souber'),
+          ),
+          errorBox,
+          h('div', { class: 'row' },
+            h('button', {
+              class: 'btn',
+              style: 'flex: 1;',
+              onClick: () => { state.setupStep = 2; renderStep(); },
+            }, icon(ICONS.arrowLeft, 14), 'Voltar'),
+            submitBtn,
+          ),
+        ));
+      };
+
+      renderStep();
+    }
+
+    // ---------- Render: Titlebar ----------
+    function renderTitlebar() {
+      return h('header', { class: 'titlebar' },
+        h('div', { class: 'titlebar-brand' },
+          h('div', { class: 'brand-mark' }, icon(ICONS.switch, 13)),
+          h('span', {}, 'NSwitch Presence'),
+        ),
+        h('div', { class: 'titlebar-spacer' }),
+        h('div', { class: 'window-controls' },
+          h('button', { class: 'win-btn', title: 'Minimizar', onClick: () => window.electron.minimize() }, icon(ICONS.mini, 14)),
+          h('button', { class: 'win-btn close', title: 'Fechar', onClick: () => window.electron.close() }, icon(ICONS.close, 12)),
+        ),
+      );
+    }
+
+    // ---------- Render: Sidebar ----------
+    function renderSidebar() {
+      const existing = document.querySelector('.sidebar');
+      const next = buildSidebar();
+      if (existing) existing.replaceWith(next);
+      return next;
+    }
+
+    function buildSidebar() {
+      const friendName = state.friend?.name || 'Conta Nintendo';
+      const friendImg = state.friend?.imageUri;
+      const initials = (friendName || 'NS').slice(0, 2).toUpperCase();
+      const connected = state.discord?.connected;
+
+      const navBtn = (id, label, iconPath) =>
+        h('button', {
+          class: `nav-item ${state.page === id ? 'active' : ''}`,
+          onClick: async () => {
+            state.page = id;
+            if (id === 'history') {
+              state.history = await window.gameHistory.list();
+            }
+            renderPage(); renderSidebar();
+          },
+        },
+          (() => { const i = icon(iconPath, 18); i.classList.add('nav-icon'); return i; })(),
+          h('span', {}, label),
+        );
+
+      return h('aside', { class: 'sidebar' },
+        h('div', { class: 'nav' },
+          h('div', { class: 'nav-section' }, 'Visão geral'),
+          navBtn('now', 'Agora', ICONS.gamepad),
+          navBtn('history', 'Histórico', ICONS.chart),
+          navBtn('settings', 'Configurações', ICONS.cog),
+        ),
+        h('div', { class: 'user-card' },
+          h('div', { class: 'user-row' },
+            h('div', { class: 'avatar' },
+              friendImg
+                ? h('img', { src: friendImg, alt: friendName, onError: (e) => e.target.replaceWith(h('div', { class: 'avatar-fallback' }, initials)) })
+                : h('div', { class: 'avatar-fallback' }, initials),
+              h('span', { class: `presence-dot ${connected ? 'connected' : ''}` }),
+            ),
+            h('div', { class: 'user-meta' },
+              h('div', { class: 'user-name' }, friendName),
+              h('div', { class: 'user-status' }, connected ? 'Discord conectado' : 'Discord offline'),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ---------- Render: Now page ----------
+    function renderNow() {
+      const game = state.game;
+      const isOnline = !!game?.name;
+      const platform = game?.platform;
+
+      const sessionMs = game?.sessionStartedAt
+        ? (Date.now() - new Date(game.sessionStartedAt).getTime())
+        : 0;
+
+      const heroBg = h('div', {
+        class: 'hero-bg',
+        style: game?.imageUri ? `background-image: url("${game.imageUri}")` : '',
+      });
+
+      const cover = game?.imageUri
+        ? h('img', { class: 'cover', src: game.imageUri, alt: game.name })
+        : h('div', { class: 'cover empty' }, icon(ICONS.gamepad, 56));
+
+      const title = game?.name || 'Sem jogo agora';
+      const eyebrow = isOnline ? 'JOGANDO AGORA' : 'AGUARDANDO';
+
+      const platformChip = isOnline
+        ? h('div', { style: 'display: flex; gap: 8px; align-items: center; flex-wrap: wrap;' },
+            h('span', { class: `platform-chip ${platform === 2 ? 'switch2' : 'switch1'}` },
+              icon(ICONS.switch, 12), platformLabel(platform)),
+            game.shopUri
+              ? h('button', {
+                  class: 'btn ghost',
+                  style: 'padding: 4px 10px; font-size: 11.5px;',
+                  onClick: () => window.electron.openExternal(game.shopUri),
+                }, icon(ICONS.external, 12), 'eShop')
+              : null,
+            game.name
+              ? h('button', {
+                  class: 'btn ghost',
+                  style: 'padding: 4px 10px; font-size: 11.5px;',
+                  title: 'Buscar no HowLongToBeat',
+                  onClick: () => window.electron.openExternal(hltbUrl(game.name)),
+                }, icon(ICONS.clock, 12), 'HLTB')
+              : null,
+          )
+        : null;
+
+      const stats = isOnline
+        ? h('div', { class: 'stat-row' },
+            h('div', { class: 'stat' },
+              h('div', { class: 'label' }, 'Sessão'),
+              h('div', { class: 'value', id: 'session-value' }, formatDuration(sessionMs)),
+            ),
+            h('div', { class: 'stat' },
+              h('div', { class: 'label' }, 'Total jogado'),
+              h('div', { class: 'value' }, formatPlayTime(game.totalPlayedMinutes)),
+            ),
+            game.firstPlayedAt
+              ? h('div', { class: 'stat' },
+                  h('div', { class: 'label' }, 'Joga desde'),
+                  h('div', { class: 'value' }, formatDate(game.firstPlayedAt)),
+                )
+              : null,
+            h('div', { class: 'stat' },
+              h('div', { class: 'label' }, 'Atualizado'),
+              h('div', { class: 'value' }, relativeTime(state.lastUpdated)),
+            ),
+          )
+        : h('div', { class: 'stat-row' },
+            h('div', { class: 'stat' },
+              h('div', { class: 'label' }, 'Status'),
+              h('div', { class: 'value' }, 'Switch desligado ou presença oculta'),
+            ),
+            h('div', { class: 'stat' },
+              h('div', { class: 'label' }, 'Última verificação'),
+              h('div', { class: 'value' }, relativeTime(state.lastUpdated)),
+            ),
+          );
+
+      const hero = h('section', { class: `hero ${isOnline ? '' : 'empty'} fade-enter` },
+        heroBg,
+        h('div', { class: 'hero-content' },
+          cover,
+          h('div', { class: 'hero-info' },
+            h('div', { class: 'hero-eyebrow' }, eyebrow),
+            h('h2', { class: 'hero-title' }, title),
+            platformChip,
+            stats,
+          ),
+        ),
+      );
+
+      // Discord card
+      const friendName = state.friend?.name || 'Você';
+      const initials = (friendName || 'NS').slice(0, 2).toUpperCase();
+
+      const discordCard = h('div', { class: 'card' },
+        h('div', { class: 'card-title' }, 'Pré-visualização no Discord'),
+        h('div', { class: 'discord-preview' },
+          h('div', { class: 'discord-avatar' }, initials),
+          h('div', { class: 'discord-meta' },
+            h('div', { class: 'discord-name' }, friendName),
+            isOnline
+              ? h('div', { class: 'discord-line' }, 'Jogando ', h('span', { class: 'game' }, game.name))
+              : h('div', { class: 'discord-line' }, 'Nenhuma atividade'),
+            isOnline
+              ? h('div', { class: 'discord-time', id: 'discord-time' }, `${platformLabel(platform)} · ${formatDuration(sessionMs)}`)
+              : null,
+          ),
+        ),
+      );
+
+      const toggleCard = h('div', { class: 'card' },
+        h('div', { class: 'toggle-row' },
+          h('div', { class: 'toggle-info' },
+            h('h4', {}, 'Discord Rich Presence'),
+            h('p', {}, state.discord?.enabled ? 'Compartilhando jogo no Discord' : 'Compartilhamento desativado'),
+          ),
+          h('div', {
+            class: `toggle ${state.discord?.enabled ? 'on' : ''}`,
+            onClick: async () => {
+              state.discord = await window.discord.toggle();
+              renderPage(); renderSidebar();
+            },
+          }),
+        ),
+      );
+
+      const statusCard = h('div', { class: 'card' },
+        h('div', { class: 'card-title' }, 'Conexão'),
+        h('div', { class: 'stack' },
+          h('div', { class: 'row-between' },
+            h('span', { class: 'text-sm text-muted' }, 'Discord RPC'),
+            h('span', { class: `pill ${state.discord?.connected ? 'connected' : 'offline'}` },
+              h('span', { class: 'dot' }),
+              state.discord?.connected ? 'Conectado' : 'Desconectado',
+            ),
+          ),
+          h('div', { class: 'row-between' },
+            h('span', { class: 'text-sm text-muted' }, 'Switch'),
+            h('span', { class: `pill ${isOnline ? 'connected' : 'offline'}` },
+              h('span', { class: 'dot' }),
+              isOnline ? 'Online' : 'Offline',
+            ),
+          ),
+          h('div', { class: 'row-between' },
+            h('span', { class: 'text-sm text-muted' }, 'Polling'),
+            h('span', { class: 'pill' }, h('span', { class: 'dot' }), 'a cada 60s'),
+          ),
+          h('button', { class: 'btn ghost', onClick: () => refreshFriendInfo().then(() => { renderPage(); renderSidebar(); }) },
+            icon(ICONS.refresh, 14), 'Atualizar agora'),
+        ),
+      );
+
+      const subtitle = state.friend?.name
+        ? `Monitorando ${state.friend.name} · ${state.nsaId}`
+        : `NSA ID ${state.nsaId}`;
+
+      return h('div', { class: 'fade-enter' },
+        h('div', { class: 'page-header' },
+          h('div', {},
+            h('h1', { class: 'page-title' }, 'Agora'),
+            h('p', { class: 'page-subtitle' }, subtitle),
+          ),
+          h('span', { class: `pill ${isOnline ? 'connected' : 'offline'}` },
+            h('span', { class: 'dot' }),
+            isOnline ? 'Switch online' : 'Switch offline',
+          ),
+        ),
+        hero,
+        h('div', { class: 'grid-2' }, discordCard, toggleCard),
+        h('div', { style: 'margin-top: 16px;' }, statusCard),
+      );
+    }
+
+    // ---------- Render: History ----------
+    function renderHistory() {
+      const allSessions = state.history || [];
+      const totalsList = state.totals || [];
+      const totalsByName = Object.fromEntries(totalsList.map((t) => [t.name, t]));
+      const search = (state.historySearch || '').trim().toLowerCase();
+      const sessions = search
+        ? allSessions.filter((s) => (s.name || '').toLowerCase().includes(search))
+        : allSessions;
+      const now = Date.now();
+      const dayMs = 86400000;
+      const streak = calculateStreak(allSessions);
+
+      const totalToday = sessions
+        .filter(s => s.startedAt >= new Date().setHours(0,0,0,0))
+        .reduce((a, s) => a + (s.totalMinutes || 0), 0);
+      const totalWeek = sessions
+        .filter(s => s.startedAt >= now - 7 * dayMs)
+        .reduce((a, s) => a + (s.totalMinutes || 0), 0);
+      const totalAll = sessions.reduce((a, s) => a + (s.totalMinutes || 0), 0);
+
+      // Aggregate by game — prefer Nintendo totals when available
+      const byGame = {};
+      for (const s of sessions) {
+        if (!s.name) continue;
+        if (!byGame[s.name]) byGame[s.name] = { name: s.name, imageUri: s.imageUri, localMinutes: 0, sessions: 0 };
+        byGame[s.name].localMinutes += s.totalMinutes || 0;
+        byGame[s.name].sessions += 1;
+      }
+      // Merge in Nintendo totals (also ensures games tracked-but-no-local-session show up)
+      for (const t of totalsList) {
+        if (search && !t.name.toLowerCase().includes(search)) continue;
+        if (!byGame[t.name]) byGame[t.name] = { name: t.name, imageUri: t.imageUri, localMinutes: 0, sessions: 0 };
+        byGame[t.name].nintendoMinutes = t.totalMinutes;
+        byGame[t.name].imageUri = byGame[t.name].imageUri || t.imageUri;
+        byGame[t.name].firstPlayedAt = t.firstPlayedAt;
+      }
+      const sortKey = (g) => g.nintendoMinutes ?? g.localMinutes;
+      const top = Object.values(byGame).sort((a, b) => sortKey(b) - sortKey(a)).slice(0, 8);
+      const topMax = sortKey(top[0]) || 1;
+
+      const fmtSession = (s) => {
+        const start = new Date(s.startedAt);
+        const today = new Date(); today.setHours(0,0,0,0);
+        const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+        let when;
+        if (s.startedAt >= today.getTime()) when = `Hoje · ${start.getHours().toString().padStart(2,'0')}:${start.getMinutes().toString().padStart(2,'0')}`;
+        else if (s.startedAt >= yesterday.getTime()) when = `Ontem · ${start.getHours().toString().padStart(2,'0')}:${start.getMinutes().toString().padStart(2,'0')}`;
+        else {
+          const days = Math.floor((now - s.startedAt) / dayMs);
+          when = `há ${days}d`;
+        }
+        return when;
+      };
+
+      const onClear = async () => {
+        if (!confirm('Apagar todo o histórico de sessões?')) return;
+        await window.gameHistory.clear();
+        state.history = [];
+        renderPage();
+      };
+
+      const statsGrid = h('div', { class: 'stats-grid' },
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatPlayTime(totalToday)),
+          h('div', { class: 'stat-lab' }, 'Hoje'),
+        ),
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatPlayTime(totalWeek)),
+          h('div', { class: 'stat-lab' }, '7 dias'),
+        ),
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatPlayTime(totalAll)),
+          h('div', { class: 'stat-lab' }, 'Total'),
+        ),
+      );
+
+      const topCard = h('div', { class: 'card' },
+        h('div', { class: 'card-title' }, 'Mais jogados (total Nintendo)'),
+        top.length === 0
+          ? h('div', { class: 'empty-state' }, 'Sem dados ainda')
+          : h('div', { class: 'top-list' },
+              ...top.map((g, i) => {
+                const minutes = sortKey(g);
+                return h('div', {
+                  class: 'top-row',
+                  style: 'cursor: pointer;',
+                  onClick: () => openGameDetail(g.name),
+                  title: 'Ver detalhes',
+                },
+                  h('div', { class: `top-rank ${i === 0 ? 'gold' : ''}` }, String(i + 1)),
+                  h('div', { class: 'top-name' }, g.name),
+                  h('div', { class: 'top-bar' },
+                    h('div', { class: 'top-bar-fill', style: `width: ${(minutes / topMax * 100).toFixed(1)}%` }),
+                  ),
+                  h('div', { class: 'top-time' }, formatPlayTime(minutes)),
+                );
+              }),
+            ),
+      );
+
+      const recent = sessions.slice(0, 20);
+      const recentCard = h('div', { class: 'card' },
+        h('div', { class: 'row-between', style: 'margin-bottom: 12px;' },
+          h('div', { class: 'card-title', style: 'margin-bottom: 0;' }, 'Sessões recentes'),
+          allSessions.length > 0
+            ? h('button', { class: 'btn ghost', onClick: onClear }, icon(ICONS.trash, 14), 'Limpar')
+            : null,
+        ),
+        recent.length === 0
+          ? h('div', { class: 'empty-state' }, search ? `Nenhuma sessão encontrada para "${search}".` : 'Nenhuma sessão registrada. Comece a jogar pra ver aqui.')
+          : h('div', { class: 'session-list' },
+              ...recent.map((s) =>
+                h('div', {
+                  class: 'session-item',
+                  style: 'cursor: pointer;',
+                  onClick: () => openGameDetail(s.name),
+                },
+                  s.imageUri
+                    ? h('img', { class: 'session-cover', src: s.imageUri, alt: s.name })
+                    : h('div', { class: 'session-cover' }),
+                  h('div', { class: 'session-meta' },
+                    h('div', { class: 'session-title' }, s.name || '—'),
+                    h('div', { class: 'session-sub' }, fmtSession(s)),
+                  ),
+                  h('div', { class: 'session-dur' }, formatPlayTime(s.totalMinutes)),
+                ),
+              ),
+            ),
+      );
+
+      const streakPill = streak > 0
+        ? h('span', { class: 'pill connected' },
+            h('span', { class: 'dot' }),
+            `${streak} ${streak === 1 ? 'dia seguido' : 'dias seguidos'} 🔥`)
+        : null;
+
+      const searchInput = h('input', {
+        class: 'input',
+        placeholder: 'Buscar por nome do jogo…',
+        value: state.historySearch,
+        style: 'max-width: 320px;',
+      });
+      let searchTimer;
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          state.historySearch = e.target.value;
+          renderPage();
+          // Re-focus input after re-render
+          requestAnimationFrame(() => {
+            const newInput = document.querySelector('.main input.input');
+            if (newInput) { newInput.focus(); newInput.setSelectionRange(state.historySearch.length, state.historySearch.length); }
+          });
+        }, 200);
+      });
+
+      return h('div', { class: 'fade-enter' },
+        h('div', { class: 'page-header' },
+          h('div', {},
+            h('h1', { class: 'page-title' }, 'Histórico'),
+            h('p', { class: 'page-subtitle' }, `${allSessions.length} ${allSessions.length === 1 ? 'sessão' : 'sessões'} registrada${allSessions.length === 1 ? '' : 's'}`),
+          ),
+          h('div', { style: 'display: flex; gap: 8px; align-items: center;' },
+            streakPill,
+            h('button', { class: 'btn', onClick: async () => {
+              const [hist, totals] = await Promise.all([window.gameHistory.list(), window.totals.list()]);
+              state.history = hist; state.totals = totals;
+              renderPage();
+            } },
+              icon(ICONS.refresh, 14), 'Recarregar'),
+          ),
+        ),
+        h('div', { style: 'margin-bottom: 14px;' }, searchInput),
+        statsGrid,
+        h('div', { class: 'grid-2' }, topCard, recentCard),
+      );
+    }
+
+    // ---------- Game detail modal ----------
+    function openGameDetail(name) {
+      state.detailGame = name;
+      renderDetailModal();
+    }
+    function closeGameDetail() {
+      state.detailGame = null;
+      const m = document.getElementById('detail-modal');
+      if (m) m.remove();
+    }
+    function renderDetailModal() {
+      const old = document.getElementById('detail-modal');
+      if (old) old.remove();
+      if (!state.detailGame) return;
+
+      const name = state.detailGame;
+      const total = state.totals.find((t) => t.name === name);
+      const sessions = (state.history || []).filter((s) => s.name === name);
+      const localTotal = sessions.reduce((a, s) => a + (s.totalMinutes || 0), 0);
+      const lastSession = sessions[0];
+      const cover = total?.imageUri || lastSession?.imageUri || '';
+      const platform = total?.platform;
+      const achievements = total?.achievements || [];
+
+      const overlay = h('div', { id: 'detail-modal', class: 'modal-overlay', onClick: (e) => { if (e.target === overlay) closeGameDetail(); } });
+      const modal = h('div', { class: 'modal-card fade-enter' });
+      overlay.appendChild(modal);
+
+      modal.appendChild(h('button', { class: 'modal-close', onClick: closeGameDetail, title: 'Fechar' }, icon(ICONS.close, 14)));
+
+      const header = h('div', { class: 'modal-header' });
+      if (cover) header.appendChild(h('img', { class: 'modal-cover', src: cover, alt: name }));
+      else header.appendChild(h('div', { class: 'modal-cover' }));
+      const headInfo = h('div', { class: 'modal-info' });
+      headInfo.appendChild(h('div', { class: 'hero-eyebrow' }, 'JOGO'));
+      headInfo.appendChild(h('h2', { class: 'hero-title', style: 'font-size: 22px;' }, name));
+      if (platform) headInfo.appendChild(h('span', { class: `platform-chip ${platform === 2 ? 'switch2' : 'switch1'}` }, icon(ICONS.switch, 12), platformLabel(platform)));
+      const actionRow = h('div', { style: 'display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;' });
+      if (total?.shopUri) {
+        actionRow.appendChild(h('button', { class: 'btn', onClick: () => window.electron.openExternal(total.shopUri) }, icon(ICONS.external, 14), 'Ver na eShop'));
+      }
+      actionRow.appendChild(h('button', {
+        class: 'btn',
+        title: 'Buscar tempo médio de jogo no HowLongToBeat',
+        onClick: () => window.electron.openExternal(hltbUrl(name)),
+      }, icon(ICONS.clock, 14), 'HowLongToBeat'));
+      headInfo.appendChild(actionRow);
+      header.appendChild(headInfo);
+      modal.appendChild(header);
+
+      const stats = h('div', { class: 'stats-grid', style: 'margin: 16px 0;' },
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatPlayTime(total?.totalMinutes || 0)),
+          h('div', { class: 'stat-lab' }, 'Total Nintendo'),
+        ),
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatPlayTime(localTotal)),
+          h('div', { class: 'stat-lab' }, 'Capturado pelo app'),
+        ),
+        h('div', { class: 'stat-card' },
+          h('div', { class: 'stat-num' }, formatDate(total?.firstPlayedAt)),
+          h('div', { class: 'stat-lab' }, 'Primeira vez'),
+        ),
+      );
+      modal.appendChild(stats);
+
+      if (achievements.length > 0) {
+        const achCard = h('div', { class: 'card', style: 'margin-bottom: 16px;' },
+          h('div', { class: 'card-title' }, 'Marcos atingidos'),
+          h('div', { class: 'chip-list' },
+            ...achievements.sort((a, b) => a - b).map((h2) =>
+              h('div', { class: 'chip', style: 'background: rgba(245,197,66,0.12); border-color: rgba(245,197,66,0.3); color: #f5c542;' }, '🏆', h('span', {}, `${h2}h`))
+            )
+          ),
+        );
+        modal.appendChild(achCard);
+      }
+
+      const sessionsCard = h('div', { class: 'card' },
+        h('div', { class: 'card-title' }, `${sessions.length} sessão${sessions.length === 1 ? '' : 'ões'} capturada${sessions.length === 1 ? '' : 's'}`),
+        sessions.length === 0
+          ? h('div', { class: 'empty-state' }, 'Nenhuma sessão capturada com o app aberto. O total da Nintendo é o número oficial.')
+          : h('div', { class: 'session-list' },
+              ...sessions.slice(0, 30).map((s) => {
+                const start = new Date(s.startedAt);
+                const when = `${start.toLocaleDateString('pt-BR')} ${start.getHours().toString().padStart(2,'0')}:${start.getMinutes().toString().padStart(2,'0')}`;
+                return h('div', { class: 'session-item' },
+                  h('div', { class: 'session-meta' },
+                    h('div', { class: 'session-title' }, when),
+                  ),
+                  h('div', { class: 'session-dur' }, formatPlayTime(s.totalMinutes)),
+                );
+              }),
+            ),
+      );
+      modal.appendChild(sessionsCard);
+
+      document.body.appendChild(overlay);
+    }
+
+    // ---------- Render: Settings ----------
+    function renderSettings() {
+      const apiInput = h('input', { class: 'input', value: state.apiUrl });
+      const nsaInput = h('input', { class: 'input', value: state.nsaId });
+      const clientIdInput = h('input', { class: 'input', placeholder: 'Discord Application ID (opcional)', value: state.discord?.clientId || '' });
+
+      const saveApi = async () => {
+        const v = apiInput.value.trim().replace(/\/$/, '');
+        await window.app.setPresenceUrl(v);
+        state.apiUrl = v;
+        toast('URL da API salva');
+      };
+      const saveNsa = async () => {
+        const v = nsaInput.value.trim();
+        if (!/^[a-f0-9]{16}$/i.test(v)) return toast('NSA ID inválido (16 caracteres hex)', true);
+        await window.app.setNsaid(v);
+        state.nsaId = v;
+        await refreshFriendInfo();
+        renderSidebar();
+        toast('NSA ID salvo');
+      };
+      const saveClientId = async () => {
+        const v = clientIdInput.value.trim();
+        await window.discord.setClientId(v);
+        state.discord = await window.discord.getStatus();
+        toast('Discord Client ID salvo');
+      };
+      const toggleAutoStart = async () => {
+        state.autoStart = !state.autoStart;
+        await window.electron.setAutoStart(state.autoStart);
+        renderPage();
+      };
+
+      return h('div', { class: 'fade-enter' },
+        h('div', { class: 'page-header' },
+          h('div', {},
+            h('h1', { class: 'page-title' }, 'Configurações'),
+            h('p', { class: 'page-subtitle' }, 'Ajustes finos do app'),
+          ),
+        ),
+        h('div', { class: 'settings-stack' },
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Fonte de dados' ),
+            h('div', { class: 'stack' },
+              h('div', { class: 'field' },
+                h('label', {}, 'URL da API'),
+                h('div', { class: 'row' }, apiInput, h('button', { class: 'btn', onClick: saveApi }, 'Salvar')),
+                h('span', { class: 'hint' }, 'Endpoint do servidor nxapi-presence'),
+              ),
+              h('div', { class: 'field' },
+                h('label', {}, 'NSA ID'),
+                h('div', { class: 'row' }, nsaInput, h('button', { class: 'btn', onClick: saveNsa }, 'Salvar')),
+                h('span', { class: 'hint' }, 'Identificador da conta a monitorar (16 caracteres hex)'),
+              ),
+            ),
+          ),
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Discord' ),
+            h('div', { class: 'stack' },
+              h('div', { class: 'field' },
+                h('label', {}, 'Application ID personalizado'),
+                h('div', { class: 'row' }, clientIdInput, h('button', { class: 'btn', onClick: saveClientId }, 'Salvar')),
+                h('span', { class: 'hint' }, 'Deixe em branco para usar o padrão. Crie em discord.com/developers.'),
+              ),
+              h('div', { class: 'toggle-row' },
+                h('div', { class: 'toggle-info' },
+                  h('h4', {}, 'Iniciar com o sistema'),
+                  h('p', {}, 'Abre direto na bandeja ao ligar o Windows. Use o ícone da bandeja pra mostrar a janela.'),
+                ),
+                h('div', { class: `toggle ${state.autoStart ? 'on' : ''}`, onClick: toggleAutoStart }),
+              ),
+            ),
+          ),
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Conta'),
+            h('div', { class: 'stack' },
+              h('div', { class: 'row-between' },
+                h('div', {},
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, state.friend?.name || 'Conta Nintendo'),
+                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px; font-family: monospace; user-select: text;' }, state.nsaId || '—'),
+                ),
+              ),
+              h('div', { class: 'row-between' },
+                h('div', {},
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Desconectar conta'),
+                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Limpa NSA ID, sessão Nintendo, histórico e totais. Você precisará reconectar pelo onboarding.'),
+                ),
+                h('button', { class: 'btn danger', onClick: async () => {
+                  if (!confirm('Desconectar conta?\n\nIsso vai apagar:\n• Seu NSA ID e token Nintendo\n• Histórico de sessões\n• Totais agregados e marcos\n\nO onboarding será reaberto. Deseja continuar?')) return;
+                  await window.app.disconnect();
+                  if (state._unsubscribe) state._unsubscribe();
+                  if (state.sessionTickerId) clearInterval(state.sessionTickerId);
+                  state.nsaId = '';
+                  state.history = [];
+                  state.totals = [];
+                  state.game = null;
+                  state.friend = null;
+                  state.setupStep = 1;
+                  state.page = 'now';
+                  renderApp();
+                } }, icon(ICONS.lock, 14), 'Desconectar'),
+              ),
+            ),
+          ),
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Privacidade'),
+            h('div', { class: 'stack' },
+              h('div', { class: 'toggle-row' },
+                h('div', { class: 'toggle-info' },
+                  h('h4', {}, 'Modo privado'),
+                  h('p', {}, 'Oculta o nome do jogo. Mostra "Um jogo no Switch" no Discord'),
+                ),
+                h('div', {
+                  class: `toggle ${state.privacy.privateMode ? 'on' : ''}`,
+                  onClick: async () => {
+                    state.privacy.privateMode = !state.privacy.privateMode;
+                    await window.privacy.setPrivateMode(state.privacy.privateMode);
+                    renderPage();
+                    toast(state.privacy.privateMode ? 'Modo privado ativado' : 'Modo privado desativado');
+                  },
+                }),
+              ),
+              h('div', { class: 'toggle-row' },
+                h('div', { class: 'toggle-info' },
+                  h('h4', {}, 'Notificar troca de jogo'),
+                  h('p', {}, 'Mostra notificação do Windows ao detectar um jogo novo'),
+                ),
+                h('div', {
+                  class: `toggle ${state.privacy.notifyGameChange ? 'on' : ''}`,
+                  onClick: async () => {
+                    state.privacy.notifyGameChange = !state.privacy.notifyGameChange;
+                    await window.privacy.setNotify(state.privacy.notifyGameChange);
+                    renderPage();
+                  },
+                }),
+              ),
+              h('div', { class: 'field' },
+                h('label', {}, 'Jogos ocultos'),
+                h('span', { class: 'hint' }, 'Discord não mostra a presença quando você estiver jogando estes'),
+                (() => {
+                  const input = h('input', { class: 'input', placeholder: 'Nome exato do jogo' });
+                  const onAdd = async () => {
+                    const v = input.value.trim();
+                    if (!v) return;
+                    const r = await window.privacy.addHidden(v);
+                    if (r?.list) state.privacy.hiddenGames = r.list;
+                    input.value = '';
+                    renderPage();
+                  };
+                  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') onAdd(); });
+                  return h('div', { class: 'row', style: 'margin-top: 6px;' }, input, h('button', { class: 'btn', onClick: onAdd }, icon(ICONS.plus, 14), 'Adicionar'));
+                })(),
+                state.privacy.hiddenGames.length > 0
+                  ? h('div', { class: 'chip-list', style: 'margin-top: 10px;' },
+                      ...state.privacy.hiddenGames.map((name) =>
+                        h('div', { class: 'chip' },
+                          icon(ICONS.eyeOff, 12),
+                          h('span', {}, name),
+                          h('button', {
+                            title: 'Remover',
+                            onClick: async () => {
+                              const r = await window.privacy.removeHidden(name);
+                              if (r?.list) state.privacy.hiddenGames = r.list;
+                              renderPage();
+                            },
+                          }, icon(ICONS.close, 11)),
+                        ),
+                      ),
+                    )
+                  : null,
+              ),
+            ),
+          ),
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Dados' ),
+            h('div', { class: 'stack' },
+              h('div', { class: 'row-between' },
+                h('div', {},
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Exportar histórico'),
+                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Salva sessões, totais Nintendo e snapshots em JSON ou CSV'),
+                ),
+                h('button', { class: 'btn', onClick: async () => {
+                  const r = await window.gameHistory.export();
+                  if (r?.success) toast(`Salvo em ${r.path.split(/[\\/]/).pop()}`);
+                  else if (!r?.canceled) toast('Falha ao exportar', true);
+                } },
+                  icon(ICONS.external, 14), 'Exportar'),
+              ),
+              h('div', { class: 'row-between' },
+                h('div', {},
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Resetar totais Nintendo'),
+                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Apaga totais agregados, snapshots e marcos'),
+                ),
+                h('button', { class: 'btn danger', onClick: async () => {
+                  if (!confirm('Apagar todos os totais e marcos coletados?')) return;
+                  await window.totals.reset();
+                  state.totals = [];
+                  toast('Totais apagados');
+                } }, icon(ICONS.trash, 14), 'Resetar'),
+              ),
+            ),
+          ),
+          h('div', { class: 'card' },
+            h('div', { class: 'card-title' }, 'Sobre' ),
+            h('div', { class: 'stack' },
+              h('div', { class: 'row-between' },
+                h('span', { class: 'text-sm text-muted' }, 'Documentação nxapi'),
+                h('button', { class: 'btn ghost', onClick: () => window.electron.openExternal('https://github.com/samuelthomas2774/nxapi') },
+                  icon(ICONS.external, 14), 'Abrir'),
+              ),
+              h('div', { class: 'row-between' },
+                h('span', { class: 'text-sm text-muted' }, 'Servidor de presença'),
+                h('button', { class: 'btn ghost', onClick: () => window.electron.openExternal(state.apiUrl) },
+                  icon(ICONS.external, 14), 'Abrir'),
+              ),
+              h('div', { class: 'row-between' },
+                h('span', { class: 'text-sm text-muted' }, 'Atalhos'),
+                h('span', { class: 'text-sm text-muted' }, 'Ctrl+1 / 2 / 3 · Esc'),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ---------- Toast ----------
+    function toast(msg, isError = false) {
+      const el = h('div', {
+        style: `
+          position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+          background: ${isError ? 'rgba(239,68,68,0.18)' : 'rgba(34,197,94,0.18)'};
+          color: ${isError ? '#fca5a5' : '#86efac'};
+          padding: 10px 18px; border-radius: 999px;
+          font-size: 12.5px; font-weight: 600;
+          border: 1px solid ${isError ? 'rgba(239,68,68,0.35)' : 'rgba(34,197,94,0.35)'};
+          backdrop-filter: blur(10px);
+          z-index: 9999;
+          animation: fadeIn .2s ease;
+        `,
+      }, msg);
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2200);
+    }
+
+    // ---------- Page renderer ----------
+    function renderPage() {
+      const main = document.querySelector('.main');
+      if (!main) return;
+      main.innerHTML = '';
+      let view;
+      if (state.page === 'settings') view = renderSettings();
+      else if (state.page === 'history') view = renderHistory();
+      else view = renderNow();
+      main.appendChild(view);
+    }
+
+    // ---------- Live session ticker ----------
+    function startSessionTicker() {
+      if (state.sessionTickerId) clearInterval(state.sessionTickerId);
+      state.sessionTickerId = setInterval(() => {
+        if (state.page !== 'now' || !state.game?.sessionStartedAt) return;
+        const ms = Date.now() - new Date(state.game.sessionStartedAt).getTime();
+        const sv = document.getElementById('session-value');
+        if (sv) sv.textContent = formatDuration(ms);
+        const dt = document.getElementById('discord-time');
+        if (dt) dt.textContent = `${platformLabel(state.game.platform)} · ${formatDuration(ms)}`;
+      }, 1000);
+    }
+
+    // ---------- App shell ----------
+    function renderApp() {
+      const root = document.getElementById('app');
+      root.innerHTML = '';
+      if (!state.nsaId) {
+        renderSetup();
+        return;
+      }
+      root.appendChild(renderTitlebar());
+      const shell = h('div', { class: 'shell' });
+      shell.appendChild(buildSidebar());
+      shell.appendChild(h('main', { class: 'main' }));
+      root.appendChild(shell);
+      renderPage();
+    }
+
+    // ---------- Keyboard shortcuts ----------
+    document.addEventListener('keydown', (e) => {
+      // Esc closes modals
+      if (e.key === 'Escape') {
+        if (state.detailGame) { closeGameDetail(); return; }
+      }
+      // Avoid swallowing typing in inputs
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      if (!state.nsaId) return;
+      if (e.ctrlKey && e.key === '1') { e.preventDefault(); state.page = 'now'; renderPage(); renderSidebar(); }
+      else if (e.ctrlKey && e.key === '2') { e.preventDefault(); state.page = 'history'; window.gameHistory.list().then((h) => { state.history = h; renderPage(); renderSidebar(); }); }
+      else if (e.ctrlKey && e.key === '3') { e.preventDefault(); state.page = 'settings'; renderPage(); renderSidebar(); }
+    });
+
+    // ---------- Boot ----------
+    (async () => {
+      await loadInitialData();
+      renderApp();
+      if (state.nsaId) {
+        subscribeToPresence();
+        startSessionTicker();
+        // Light background refresh of friend info + totals every 90s
+        setInterval(async () => {
+          await refreshFriendInfo();
+          state.totals = await window.totals.list();
+          if (state.page === 'now') renderPage();
+          if (state.page === 'history') { state.history = await window.gameHistory.list(); renderPage(); }
+          renderSidebar();
+        }, 90000);
+      }
+    })();
+  </script>
+</body>
+</html>

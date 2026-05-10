@@ -1,0 +1,51 @@
+# Electron runtime — redistribuíveis, regerados pelo build
+*.dll
+*.pak
+*.bin
+*.dat
+LICENSES.chromium.html
+locales/
+chrome_*_percent.pak
+v8_context_snapshot.bin
+snapshot_blob.bin
+icudtl.dat
+vk_swiftshader_icd.json
+version
+
+# Binário do app — acima do limite do GitHub (100MB). Publicar via Releases.
+*.exe
+
+# Archive default do Electron (fallback embutido no runtime)
+*.asar
+
+# Dependências — regerar com `npm install` em resources/app/
+node_modules/
+
+# Logs e crash dumps
+*.log
+PROJECT_CRASH.log
+
+# Configs locais de IDE / agente
+.claude/
+.vscode/
+.idea/
+*.code-workspace
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Outputs de build
+dist/
+build/
+out/preload/index.mjs
+
+# Configs de electron-store (nunca devem entrar no repo — ficam em %APPDATA%)
+config.json
+
+# Certs e chaves (nunca commitar)
+*.pfx
+*.p12
+*.key
+*.cer
