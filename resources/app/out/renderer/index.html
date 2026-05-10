@@ -828,7 +828,7 @@
       return `há ${h}h`;
     };
 
-    const platformLabel = (p) => p === 2 ? 'Nintendo Switch 2' : 'Nintendo Switch';
+    const platformLabel = (p) => p === 2 ? 'Switch 2' : 'Switch';
     const hltbUrl = (name) => `https://howlongtobeat.com/?q=${encodeURIComponent(name || '')}`;
 
     const formatDate = (ms) => {
@@ -963,7 +963,7 @@
       const renderStep1 = () => {
         card.appendChild(h('div', { class: 'setup-mark' }, icon(ICONS.switch, 28)));
         card.appendChild(h('h1', { class: 'setup-title' }, 'Bem-vindo'));
-        card.appendChild(h('p', { class: 'setup-sub' }, 'Vamos conectar sua presença do Nintendo Switch ao Discord em 3 passos.'));
+        card.appendChild(h('p', { class: 'setup-sub' }, 'Vamos conectar sua presença do console ao Discord em 3 passos.'));
         card.appendChild(h('div', { class: 'stack' },
           h('div', { class: 'help-step' },
             h('div', { class: 'num' }, '1'),
@@ -1200,7 +1200,7 @@
     }
 
     function buildSidebar() {
-      const friendName = state.friend?.name || 'Conta Nintendo';
+      const friendName = state.friend?.name || 'Conta vinculada';
       const friendImg = state.friend?.imageUri;
       const initials = (friendName || 'NS').slice(0, 2).toUpperCase();
       const connected = state.discord?.connected;
@@ -1494,7 +1494,7 @@
       );
 
       const topCard = h('div', { class: 'card' },
-        h('div', { class: 'card-title' }, 'Mais jogados (total Nintendo)'),
+        h('div', { class: 'card-title' }, 'Mais jogados (total registrado)'),
         top.length === 0
           ? h('div', { class: 'empty-state' }, 'Sem dados ainda')
           : h('div', { class: 'top-list' },
@@ -1648,7 +1648,7 @@
       const stats = h('div', { class: 'stats-grid', style: 'margin: 16px 0;' },
         h('div', { class: 'stat-card' },
           h('div', { class: 'stat-num' }, formatPlayTime(total?.totalMinutes || 0)),
-          h('div', { class: 'stat-lab' }, 'Total Nintendo'),
+          h('div', { class: 'stat-lab' }, 'Total registrado'),
         ),
         h('div', { class: 'stat-card' },
           h('div', { class: 'stat-num' }, formatPlayTime(localTotal)),
@@ -1676,7 +1676,7 @@
       const sessionsCard = h('div', { class: 'card' },
         h('div', { class: 'card-title' }, `${sessions.length} sessão${sessions.length === 1 ? '' : 'ões'} capturada${sessions.length === 1 ? '' : 's'}`),
         sessions.length === 0
-          ? h('div', { class: 'empty-state' }, 'Nenhuma sessão capturada com o app aberto. O total da Nintendo é o número oficial.')
+          ? h('div', { class: 'empty-state' }, 'Nenhuma sessão capturada com o app aberto. O total registrado é o número oficial fornecido pelo serviço.')
           : h('div', { class: 'session-list' },
               ...sessions.slice(0, 30).map((s) => {
                 const start = new Date(s.startedAt);
@@ -1773,7 +1773,7 @@
             h('div', { class: 'stack' },
               h('div', { class: 'row-between' },
                 h('div', {},
-                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, state.friend?.name || 'Conta Nintendo'),
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, state.friend?.name || 'Conta vinculada'),
                   h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px; font-family: monospace; user-select: text;' }, state.nsaId || '—'),
                 ),
               ),
@@ -1874,7 +1874,7 @@
               h('div', { class: 'row-between' },
                 h('div', {},
                   h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Exportar histórico'),
-                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Salva sessões, totais Nintendo e snapshots em JSON ou CSV'),
+                  h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Salva sessões, totais e snapshots em JSON ou CSV'),
                 ),
                 h('button', { class: 'btn', onClick: async () => {
                   const r = await window.gameHistory.export();
@@ -1885,7 +1885,7 @@
               ),
               h('div', { class: 'row-between' },
                 h('div', {},
-                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Resetar totais Nintendo'),
+                  h('div', { style: 'font-size: 13px; font-weight: 600;' }, 'Resetar totais registrados'),
                   h('div', { class: 'text-sm text-muted', style: 'margin-top: 2px;' }, 'Apaga totais agregados, snapshots e marcos'),
                 ),
                 h('button', { class: 'btn danger', onClick: async () => {

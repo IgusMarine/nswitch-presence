@@ -1,13 +1,19 @@
 # NSwitch Presence
 
-App de Discord Rich Presence pra Nintendo Switch e Switch 2 — mostra automaticamente o jogo que você tá jogando, com tempo de sessão ao vivo, capa do jogo, e suporte a Switch 2.
+App de Discord Rich Presence para o console Switch — mostra automaticamente o jogo que você está jogando, com tempo de sessão ao vivo e capa do jogo.
 
-> ⚠️ **Status:** distribuição apenas binária. O código-fonte original (TypeScript / React / Electron com build pipeline) não está incluído — este repositório contém o output bundled do build, modificado e mantido manualmente.
+> ⚠️ **Disclaimer**
+>
+> Este projeto **não é afiliado, endossado ou patrocinado pela Nintendo**. "Nintendo", "Nintendo Switch" e marcas relacionadas são propriedade da Nintendo Co., Ltd. Este app utiliza APIs **não-oficiais e reverse-engineered pela comunidade** para fins educacionais e de uso pessoal. Use por sua conta e risco — o uso de APIs não-oficiais pode violar os Termos de Serviço da plataforma e levar a banimento de conta.
+>
+> Este projeto é **não-comercial**, não vende nada, não distribui jogos ou conteúdo protegido por direitos autorais.
+
+> ℹ️ **Status:** distribuição apenas binária. O código-fonte original (TypeScript / React / Electron com build pipeline) não está incluído — este repositório contém o output bundled do build, modificado e mantido manualmente.
 
 ## Recursos
 
 - **Rich Presence automático** no Discord: nome do jogo, plataforma (Switch / Switch 2), tempo de sessão ao vivo, capa, botão "Ver na eShop"
-- **Histórico de sessões** com top jogos por tempo (usando o total oficial da Nintendo), busca, streak de dias seguidos, modal de detalhe por jogo
+- **Histórico de sessões** com top jogos por tempo (usando o total oficial fornecido pelo serviço), busca, streak de dias seguidos, modal de detalhe por jogo
 - **Integração HowLongToBeat** — botão direto pra busca do jogo
 - **Marcos de jogo** — notificação Windows ao bater 1h, 10h, 100h etc num jogo
 - **Modo privado** ("Um jogo no Switch") e lista de jogos ocultos
@@ -19,17 +25,17 @@ App de Discord Rich Presence pra Nintendo Switch e Switch 2 — mostra automatic
 
 ## Como funciona
 
-O Switch não expõe presença local — só a **Coral API privada da Nintendo** (a mesma usada pelo app NSO). Este app consulta o serviço **[nxapi-presence](https://nxapi-presence.fancy.org.uk/)** do Samuel Elliott (proxy público gratuito do nxapi), que faz a ponte com a API da Nintendo.
+O console não expõe presença localmente — apenas via uma API privada do fabricante (a mesma usada pelo app oficial Switch Online). Este app consulta o serviço **[nxapi-presence](https://nxapi-presence.fancy.org.uk/)** do Samuel Elliott (proxy público gratuito do nxapi), que faz a ponte com essa API.
 
 ```
-Switch → API Coral (Nintendo) → nxapi-presence (proxy) → NSwitch Presence → Discord RPC
+Console → API privada → nxapi-presence (proxy) → NSwitch Presence → Discord RPC
 ```
 
 ## Pré-requisitos
 
 - Windows 10 ou 11
 - Discord Desktop instalado e logado
-- Conta **Nintendo Switch Online** ativa
+- Assinatura **Switch Online** ativa
 - No console: *Perfil → Configurações de Compartilhamento de Presença Online → "Amigos"* (sem isso, sua presença fica oculta)
 
 ## Instalação
@@ -38,7 +44,7 @@ Switch → API Coral (Nintendo) → nxapi-presence (proxy) → NSwitch Presence 
 2. Extraia o ZIP em qualquer pasta
 3. Execute `NSwitch Presence.exe`
 4. Siga o onboarding de 3 passos:
-   - Login com sua conta Nintendo no nxapi-presence
+   - Login com sua conta no nxapi-presence
    - Cole o link do seu perfil
    - O app valida e começa a monitorar
 
@@ -59,7 +65,7 @@ resources/app/
 
 Settings ficam em `%APPDATA%\nswitch-presence\config.json`. Chaves principais:
 
-- `monitorNsaId` — ID Nintendo Service Account (16 hex)
+- `monitorNsaId` — identificador da conta de serviço (16 hex)
 - `externalApiUrl` — URL do servidor nxapi-presence (padrão: `https://nxapi-presence.fancy.org.uk`)
 - `pollingInterval` — segundos entre checagens (padrão: 20)
 - `privateMode`, `hiddenGames`, `notifyGameChange` — privacidade
@@ -68,7 +74,7 @@ Settings ficam em `%APPDATA%\nswitch-presence\config.json`. Chaves principais:
 
 ## Privacidade
 
-- O app **não envia** seu token Nintendo pra nenhum servidor além do nxapi-presence (que você escolhe — pode self-host)
+- O app **não envia** seu token de sessão pra nenhum servidor além do nxapi-presence (que você escolhe — pode self-host)
 - Seu nome de usuário e capa de jogo aparecem no seu Discord conforme as configurações que você fizer
 - Histórico de jogos fica **só localmente** no seu PC (`%APPDATA%`)
 - Quando ativa Modo Privado, o Discord só vê "Um jogo no Switch" + plataforma
@@ -104,6 +110,13 @@ Veja [`FUTURE_IMPROVEMENTS.md`](./FUTURE_IMPROVEMENTS.md) — 18 itens priorizad
 
 ## Limitações conhecidas
 
-- Switch comum: sem homebrew, dependência da API Coral é inevitável (a Nintendo é a única fonte de "qual jogo está rodando")
+- Console comum: sem homebrew, dependência da API privada do fabricante é inevitável (única fonte de "qual jogo está rodando")
 - Self-signed: SmartScreen mostra aviso na primeira execução. Clique em "Mais informações → Executar mesmo assim". Após reputação local, o aviso some
 - Rebuild: sem o source TS/React, alterações na UI são feitas direto no HTML/JS bundled
+
+## Riscos de uso
+
+- O uso de APIs não-oficiais pode violar os Termos de Serviço do fabricante
+- Em casos raros, o acesso pode ser detectado e levar a limitações na conta
+- Considere usar uma conta secundária se quer ser conservador
+- O serviço público nxapi-presence pode sair do ar a qualquer momento — opte por self-host se precisa de garantias

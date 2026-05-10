@@ -100680,7 +100680,7 @@ class DiscordService {
     const mapping = privateMode ? null : this.findTitleMapping(game.name);
     const baseClientId = this.customClientId || DEFAULT_CLIENT_ID;
     const clientId = mapping?.clientId ?? baseClientId;
-    const platformLabel = game.platform === 2 ? "Nintendo Switch 2" : "Nintendo Switch";
+    const platformLabel = game.platform === 2 ? "Switch 2" : "Switch";
     const displayName = privateMode ? "Um jogo no Switch" : game.name;
     const largeImageKey = privateMode ? "switch_logo" : (game.imageUri || mapping?.largeImageKey || "switch_logo");
     const largeImageText = privateMode ? platformLabel : (mapping?.largeImageText || game.name);
@@ -100848,7 +100848,7 @@ function notifyGameStarted(game) {
     let hidden = [];
     try { hidden = JSON.parse(store.get("hiddenGames") || "[]"); } catch {}
     if (hidden.some((n) => n.toLowerCase() === game.name.toLowerCase())) return;
-    const platformLabel = game.platform === 2 ? "Nintendo Switch 2" : "Nintendo Switch";
+    const platformLabel = game.platform === 2 ? "Switch 2" : "Switch";
     const n = new Notification({
       title: "Jogando agora",
       body: `${game.name} · ${platformLabel}`,
