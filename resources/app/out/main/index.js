@@ -100550,6 +100550,7 @@ class DiscordService {
     this.retryTimeout = null;
     this.retryDelay = 3000;
     this.customClientId = null;
+    this.pendingActivity = null;
   }
   setCustomClientId(id2) {
     this.customClientId = id2;
@@ -100571,6 +100572,9 @@ class DiscordService {
       this.retryDelay = 3000;
       if (this.enabled && this.currentGame) {
         this.setGame(this.currentGame);
+      } else if (this.pendingActivity) {
+        try { this.client.setActivity(this.pendingActivity); } catch {}
+        this.pendingActivity = null;
       }
     });
     this.client.on("disconnected", () => {
@@ -100612,6 +100616,9 @@ class DiscordService {
       this.connected = true;
       if (this.enabled && this.currentGame) {
         this.setGame(this.currentGame);
+      } else if (this.pendingActivity) {
+        try { this.client.setActivity(this.pendingActivity); } catch {}
+        this.pendingActivity = null;
       }
     });
     this.client.on("disconnected", () => {
@@ -100647,16 +100654,20 @@ class DiscordService {
         largeImageKey: "large"
       };
     }
+    let best = null;
     for (const [id2, mapping] of Object.entries(titleMappings)) {
-      if (mapping.name && normalizedName.includes(mapping.name.toLowerCase())) {
-        return {
-          clientId: mapping.client,
-          largeImageText: mapping.name,
-          largeImageKey: "large"
-        };
+      if (!mapping.name) continue;
+      const mName = mapping.name.toLowerCase();
+      if (normalizedName === mName) {
+        return { clientId: mapping.client, largeImageText: mapping.name, largeImageKey: "large" };
+      }
+      if (normalizedName.startsWith(mName + " ") || normalizedName.endsWith(" " + mName) || normalizedName.includes(" " + mName + " ")) {
+        if (!best || mName.length > best.len) {
+          best = { len: mName.length, value: { clientId: mapping.client, largeImageText: mapping.name, largeImageKey: "large" } };
+        }
       }
     }
-    return null;
+    return best ? best.value : null;
   }
   updateActivity(game) {
     this.setGame(game);
@@ -100666,14 +100677,15 @@ class DiscordService {
     return this.getStatus();
   }
   setGame(game) {
-    if (!this.client || !this.enabled) return;
+    if (!this.enabled) return;
     this.currentGame = game;
     let hiddenGames = [];
     try { hiddenGames = JSON.parse(store.get("hiddenGames") || "[]"); } catch {}
     const isHidden = hiddenGames.some((n) => n.toLowerCase() === game.name.toLowerCase());
     if (isHidden) {
       console.log(`[Discord] Game "${game.name}" is hidden, clearing activity`);
-      this.client.clearActivity();
+      this.pendingActivity = null;
+      if (this.client && this.connected) { try { this.client.clearActivity(); } catch {} }
       return;
     }
     const privateMode = !!store.get("privateMode");
@@ -100697,19 +100709,19 @@ class DiscordService {
     }
     if (clientId !== this.currentClientId) {
       console.log(`[Discord] Switching to game client: ${clientId} for ${game.name}`);
-      this.reconnectWithClient(clientId).then(() => {
-        this.client?.setActivity(activity);
-      }).catch(() => {
-        this.client?.setActivity(activity);
-      });
+      this.pendingActivity = activity;
+      this.reconnectWithClient(clientId).catch(() => {});
+    } else if (this.client && this.connected) {
+      try { this.client.setActivity(activity); } catch (e) { console.warn("[Discord] setActivity failed", e); this.pendingActivity = activity; }
     } else {
-      this.client.setActivity(activity);
+      this.pendingActivity = activity;
     }
   }
   clearActivity() {
     this.currentGame = null;
-    if (this.client && this.enabled) {
-      this.client.clearActivity();
+    this.pendingActivity = null;
+    if (this.client && this.enabled && this.connected) {
+      try { this.client.clearActivity(); } catch {}
     }
   }
   setEnabled(enabled) {
@@ -100740,8 +100752,11 @@ class PresenceService {
       const apiUrl = getPresenceApiUrl();
       console.log("[Presence] Fetching from:", `${apiUrl}/api/presence/${nsaId}`);
       const response = await fetch(`${apiUrl}/api/presence/${nsaId}`, {
+        cache: "no-store",
         headers: {
-          "User-Agent": "NSwitch-Presence/1.0.0"
+          "User-Agent": "NSwitch-Presence/1.0.0",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
         }
       });
       if (!response.ok) {
@@ -100901,12 +100916,15 @@ class PollingService extends EventEmitter$3 {
         return;
       }
       const presenceData = presence.friend?.presence;
-      if (!presenceData || !presenceData.game) {
+      const stateStr = typeof presenceData?.state === "string" ? presenceData.state.toUpperCase() : "";
+      const isActive = stateStr === "ONLINE" || stateStr === "PLAYING";
+      const game = presenceData?.game;
+      const hasGame = !!(game && (game.name || game.imageUri || game.shopUri));
+      if (!presenceData || !isActive || !hasGame) {
         this.handlePresenceChange(null);
         this.isPolling = false;
         return;
       }
-      const game = presenceData.game;
       const sessionStartedAt = new Date(presenceData.updatedAt * 1e3);
       const gamePresence = {
         name: game.name,
